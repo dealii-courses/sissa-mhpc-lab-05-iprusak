@@ -227,7 +227,9 @@ Poisson<dim>::solve()
 {
   SolverControl            solver_control(1000, 1e-12);
   SolverCG<Vector<double>> solver(solver_control);
-  solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
+  // auto                     preconditioner = PreconditionLU<double>();
+  // preconditioner.initialize(system_matrix);
+  solver.solve(system_matrix, solution, system_rhs, PreconditionRichardson());
   constraints.distribute(solution);
 }
 
