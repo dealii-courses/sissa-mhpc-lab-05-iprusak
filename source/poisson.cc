@@ -39,6 +39,8 @@ Poisson<dim>::Poisson()
   add_parameter("Grid generator function", grid_generator_function);
   add_parameter("Grid generator arguments", grid_generator_arguments);
   add_parameter("Number of refinement cycles", n_refinement_cycles);
+  add_parameter("Local prerefinement grid size expression",
+                local_prerefinement_grid_size_expression);
 
   this->prm.enter_subsection("Error table");
   error_table.add_parameters(this->prm);
@@ -67,10 +69,32 @@ template <int dim>
 void
 Poisson<dim>::make_grid()
 {
+  local_prerefinement_grid_size.initialize(
+    dim == 1 ? "x" :
+    dim == 2 ? "x,y" :
+               "x,y,z",
+    local_prerefinement_grid_size_expression,
+    constants);
   GridGenerator::generate_from_name_and_arguments(triangulation,
                                                   grid_generator_function,
                                                   grid_generator_arguments);
-  triangulation.refine_global(n_refinements);
+
+  for (unsigned int i = 0; i < n_refinements; ++i)
+    {
+      unsigned int counter = 0;
+      while (counter <= n_refinements)
+        {
+          for (const auto &cell : triangulation.active_cell_iterators())
+            {
+              if (local_prerefinement_grid_size.value(cell->center()) >
+                  cell->diameter())
+                cell->set_refine_flag();
+              triangulation.execute_coarsening_and_refinement();
+              counter++;
+            }
+        }
+      triangulation.refine_global(1);
+    }
   std::cout << "Number of active cells: " << triangulation.n_active_cells()
             << std::endl;
 }

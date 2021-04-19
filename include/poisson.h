@@ -98,6 +98,7 @@ protected:
   FunctionParser<dim> forcing_term;
   FunctionParser<dim> dirichlet_boundary_condition;
   FunctionParser<dim> neumann_boundary_condition;
+  FunctionParser<dim> local_prerefinement_grid_size;
 
   unsigned int fe_degree           = 1;
   unsigned int n_refinements       = 4;
@@ -110,6 +111,7 @@ protected:
   std::string                   forcing_term_expression                  = "1";
   std::string                   dirichlet_boundary_conditions_expression = "0";
   std::string                   neumann_boundary_conditions_expression   = "0";
+  std::string                   local_prerefinement_grid_size_expression = "0";
   std::map<std::string, double> constants;
 
   std::string grid_generator_function  = "hyper_cube";
