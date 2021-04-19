@@ -123,3 +123,45 @@ TEST_F(Poisson2DTester, TestMixedBCs)
 
   ASSERT_NEAR(tmp.l2_norm(), 0, 1e-10);
 }
+TEST_F(Poisson2DTester, TestLinearWIthHangingNodes)
+{
+  std::stringstream str;
+  str << "subsection Poisson<2>" << std::endl
+      << "set Dirichlet boundary condition expression = x" << std::endl
+      << "set Dirichlet boundary ids                  = 0" << std::endl
+      << "set Finite element degree                   = 1" << std::endl
+      << "set Forcing term expression                 = 0" << std::endl
+      << "set Grid generator arguments                = 0: 1: false"
+      << std::endl
+      << "set Grid generator function                 = hyper_cube" << std::endl
+      << "set Neumann boundary condition expression   = 0" << std::endl
+      << "set Neumann boundary ids                    =" << std::endl
+      << "set Number of global refinements            = 4" << std::endl
+      << "set Number of refinement cycles             = 1" << std::endl
+      << "set Output filename                         = lin_with_hanging"
+      << std::endl
+      << "set Problem constants                       = pi: 3.14" << std::endl
+      << "end" << std::endl;
+
+  parse_string(str.str());
+  make_grid();
+  for (unsigned int i = 0; i < 2; i++)
+    {
+      for (const auto &cell : triangulation.active_cell_iterators())
+        if (cell->center().square() <= 0.25)
+          cell->set_refine_flag();
+      triangulation.execute_coarsening_and_refinement();
+    }
+
+  setup_system();
+  assemble_system();
+  solve();
+  output_results(0);
+
+  auto tmp = solution;
+  VectorTools::interpolate(dof_handler, dirichlet_boundary_condition, tmp);
+
+  tmp -= solution;
+
+  ASSERT_NEAR(tmp.l2_norm(), 0, 1e-10);
+}
