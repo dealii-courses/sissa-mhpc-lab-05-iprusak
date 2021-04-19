@@ -37,6 +37,7 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria.h>
 
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/precondition.h>
@@ -88,6 +89,7 @@ protected:
   Triangulation<dim>         triangulation;
   std::unique_ptr<FE_Q<dim>> fe;
   DoFHandler<dim>            dof_handler;
+  AffineConstraints<double>  constraints;
   SparsityPattern            sparsity_pattern;
   SparseMatrix<double>       system_matrix;
   Vector<double>             solution;

@@ -115,8 +115,18 @@ Poisson<dim>::setup_system()
   dof_handler.distribute_dofs(*fe);
   std::cout << "Number of degrees of freedom: " << dof_handler.n_dofs()
             << std::endl;
+  constraints.clear();
+  DoFTools::make_hanging_node_constraints(dof_handler, constraints);
+
+  for (const auto &id : dirichlet_ids)
+    VectorTools::interpolate_boundary_values(dof_handler,
+                                             id,
+                                             dirichlet_boundary_condition,
+                                             constraints);
+  constraints.close();
+
   DynamicSparsityPattern dsp(dof_handler.n_dofs());
-  DoFTools::make_sparsity_pattern(dof_handler, dsp);
+  DoFTools::make_sparsity_pattern(dof_handler, dsp, constraints, false);
   sparsity_pattern.copy_from(dsp);
   system_matrix.reinit(sparsity_pattern);
   solution.reinit(dof_handler.n_dofs());
@@ -180,26 +190,9 @@ Poisson<dim>::assemble_system()
             }
 
       cell->get_dof_indices(local_dof_indices);
-      for (const unsigned int i : fe_values.dof_indices())
-        for (const unsigned int j : fe_values.dof_indices())
-          system_matrix.add(local_dof_indices[i],
-                            local_dof_indices[j],
-                            cell_matrix(i, j));
-      for (const unsigned int i : fe_values.dof_indices())
-        system_rhs(local_dof_indices[i]) += cell_rhs(i);
+      constraints.distribute_local_to_global(
+        cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs);
     }
-  std::map<types::global_dof_index, double> boundary_values;
-  for (const auto &id : dirichlet_ids)
-    {
-      VectorTools::interpolate_boundary_values(dof_handler,
-                                               id,
-                                               dirichlet_boundary_condition,
-                                               boundary_values);
-    }
-  MatrixTools::apply_boundary_values(boundary_values,
-                                     system_matrix,
-                                     solution,
-                                     system_rhs);
 }
 
 
@@ -211,6 +204,7 @@ Poisson<dim>::solve()
   SolverControl            solver_control(1000, 1e-12);
   SolverCG<Vector<double>> solver(solver_control);
   solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
+  constraints.distribute(solution);
 }
 
 
