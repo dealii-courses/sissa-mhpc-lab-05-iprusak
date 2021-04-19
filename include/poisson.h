@@ -68,6 +68,9 @@ public:
   void
   initialize(const std::string &filename);
 
+  void
+  parse_string(const std::string &parameters);
+
 protected:
   void
   make_grid();

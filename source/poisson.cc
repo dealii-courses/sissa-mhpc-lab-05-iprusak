@@ -53,6 +53,14 @@ Poisson<dim>::initialize(const std::string &filename)
   ParameterAcceptor::initialize(filename);
 }
 
+template <int dim>
+void
+Poisson<dim>::parse_string(const std::string &parameters)
+{
+  ParameterAcceptor::prm.parse_input_from_string(parameters);
+  ParameterAcceptor::parse_all_parameters();
+}
+
 
 
 template <int dim>

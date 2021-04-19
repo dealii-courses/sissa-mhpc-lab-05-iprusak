@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <fstream>
+#include <sstream>
 
 using namespace dealii;
 
@@ -22,8 +23,103 @@ TYPED_TEST(PoissonTester, MakeGrid)
   this->make_grid();
 }
 
+
+
 // Test only two dimensional code
-TEST_F(Poisson2DTester, MakeGrid)
+TEST_F(Poisson2DTester, TestLinear)
 {
+  std::stringstream str;
+  str << "subsection Poisson<2>" << std::endl
+      << "set Dirichlet boundary condition expression = x" << std::endl
+      << "set Dirichlet boundary ids                  = 0" << std::endl
+      << "set Finite element degree                   = 1" << std::endl
+      << "set Forcing term expression                 = 0" << std::endl
+      << "set Grid generator arguments                = 0: 1: false"
+      << std::endl
+      << "set Grid generator function                 = hyper_cube" << std::endl
+      << "set Neumann boundary condition expression   = 0" << std::endl
+      << "set Neumann boundary ids                    =" << std::endl
+      << "set Number of global refinements            = 4" << std::endl
+      << "set Number of refinement cycles             = 1" << std::endl
+      << "set Output filename                         = poisson" << std::endl
+      << "set Problem constants                       = pi: 3.14" << std::endl
+      << "end" << std::endl;
+
+  parse_string(str.str());
   make_grid();
+  setup_system();
+  assemble_system();
+  solve();
+
+  auto tmp = solution;
+  VectorTools::interpolate(dof_handler, dirichlet_boundary_condition, tmp);
+
+  tmp -= solution;
+
+  ASSERT_NEAR(tmp.l2_norm(), 0, 1e-10);
+}
+
+TEST_F(Poisson2DTester, TestQuadratic)
+{
+  std::stringstream str;
+  str << "subsection Poisson<2>" << std::endl
+      << "set Dirichlet boundary condition expression = x^2" << std::endl
+      << "set Dirichlet boundary ids                  = 0" << std::endl
+      << "set Finite element degree                   = 2" << std::endl
+      << "set Forcing term expression                 = -2" << std::endl
+      << "set Grid generator arguments                = 0: 1: false"
+      << std::endl
+      << "set Grid generator function                 = hyper_cube" << std::endl
+      << "set Neumann boundary condition expression   = 0" << std::endl
+      << "set Neumann boundary ids                    =" << std::endl
+      << "set Number of global refinements            = 4" << std::endl
+      << "set Number of refinement cycles             = 1" << std::endl
+      << "set Output filename                         = poisson" << std::endl
+      << "set Problem constants                       = pi: 3.14" << std::endl
+      << "end" << std::endl;
+
+  parse_string(str.str());
+  make_grid();
+  setup_system();
+  assemble_system();
+  solve();
+
+  auto tmp = solution;
+  VectorTools::interpolate(dof_handler, dirichlet_boundary_condition, tmp);
+
+  tmp -= solution;
+
+  ASSERT_NEAR(tmp.l2_norm(), 0, 1e-10);
+}
+
+TEST_F(Poisson2DTester, TestMixedBCs)
+{
+  std::stringstream str;
+  str << "subsection Poisson<2>" << std::endl
+      << "set Dirichlet boundary condition expression = x^2" << std::endl
+      << "set Dirichlet boundary ids                  = 1,2,3" << std::endl
+      << "set Finite element degree                   = 2" << std::endl
+      << "set Forcing term expression                 = -2" << std::endl
+      << "set Grid generator arguments                = 0: 1: true" << std::endl
+      << "set Grid generator function                 = hyper_cube" << std::endl
+      << "set Neumann boundary condition expression   = 0" << std::endl
+      << "set Neumann boundary ids                    = 0" << std::endl
+      << "set Number of global refinements            = 4" << std::endl
+      << "set Number of refinement cycles             = 1" << std::endl
+      << "set Output filename                         = poisson" << std::endl
+      << "set Problem constants                       = pi: 3.14" << std::endl
+      << "end" << std::endl;
+
+  parse_string(str.str());
+  make_grid();
+  setup_system();
+  assemble_system();
+  solve();
+
+  auto tmp = solution;
+  VectorTools::interpolate(dof_handler, dirichlet_boundary_condition, tmp);
+
+  tmp -= solution;
+
+  ASSERT_NEAR(tmp.l2_norm(), 0, 1e-10);
 }
