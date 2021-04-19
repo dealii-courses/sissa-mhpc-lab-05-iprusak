@@ -121,11 +121,17 @@ template <int dim>
 void
 Poisson<dim>::assemble_system()
 {
-  QGauss<dim>        quadrature_formula(fe->degree + 1);
-  FEValues<dim>      fe_values(*fe,
+  QGauss<dim>       quadrature_formula(fe->degree + 1);
+  QGauss<dim - 1>   face_quadrature_formula(fe->degree + 1);
+  FEValues<dim>     fe_values(*fe,
                           quadrature_formula,
                           update_values | update_gradients |
                             update_quadrature_points | update_JxW_values);
+  FEFaceValues<dim> fe_face_values(*fe,
+                                   face_quadrature_formula,
+                                   update_values | update_quadrature_points |
+                                     update_JxW_values);
+
   const unsigned int dofs_per_cell = fe->n_dofs_per_cell();
   FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
   Vector<double>     cell_rhs(dofs_per_cell);
@@ -149,6 +155,22 @@ Poisson<dim>::assemble_system()
                               fe_values.quadrature_point(q_index)) * // f(x_q)
                             fe_values.JxW(q_index));                 // dx
         }
+      if (cell->at_boundary())
+        // for(const auto face: cell->face.inices())
+        for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f)
+          if (neumann_ids.find(cell->face(f)->boundary_id()) !=
+              neumann_ids.end())
+            {
+              fe_face_values.reinit(cell, f);
+              for (const unsigned int q_index :
+                   fe_face_values.quadrature_point_indices())
+                for (const unsigned int i : fe_values.dof_indices())
+                  cell_rhs(i) += (fe_face_values.shape_value(i, q_index) *
+                                  neumann_boundary_condition.value(
+                                    fe_face_values.quadrature_point(q_index)) *
+                                  fe_face_values.JxW(q_index));
+            }
+
       cell->get_dof_indices(local_dof_indices);
       for (const unsigned int i : fe_values.dof_indices())
         for (const unsigned int j : fe_values.dof_indices())
