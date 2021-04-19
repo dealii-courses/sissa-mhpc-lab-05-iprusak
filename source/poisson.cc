@@ -29,8 +29,12 @@ Poisson<dim>::Poisson()
   add_parameter("Number of global refinements", n_refinements);
   add_parameter("Output filename", output_filename);
   add_parameter("Forcing term expression", forcing_term_expression);
-  add_parameter("Boundary condition expression",
-                boundary_conditions_expression);
+  add_parameter("Dirichlet boundary condition expression",
+                dirichlet_boundary_conditions_expression);
+  add_parameter("Neumann boundary condition expression",
+                neumann_boundary_conditions_expression);
+  add_parameter("Dirichlet boundary ids", dirichlet_ids);
+  add_parameter("Neumann boundary ids", neumann_ids);
   add_parameter("Problem constants", constants);
   add_parameter("Grid generator function", grid_generator_function);
   add_parameter("Grid generator arguments", grid_generator_arguments);
@@ -81,12 +85,23 @@ Poisson<dim>::setup_system()
   if (!fe)
     {
       fe = std::make_unique<FE_Q<dim>>(fe_degree);
-      forcing_term.initialize(dim == 1 ? "x" : dim == 2 ? "x,y" : "x,y,z",
+      forcing_term.initialize(dim == 1 ? "x" :
+                              dim == 2 ? "x,y" :
+                                         "x,y,z",
                               forcing_term_expression,
                               constants);
-      boundary_condition.initialize(dim == 1 ? "x" : dim == 2 ? "x,y" : "x,y,z",
-                                    boundary_conditions_expression,
-                                    constants);
+      dirichlet_boundary_condition.initialize(
+        dim == 1 ? "x" :
+        dim == 2 ? "x,y" :
+                   "x,y,z",
+        dirichlet_boundary_conditions_expression,
+        constants);
+      neumann_boundary_condition.initialize(
+        dim == 1 ? "x" :
+        dim == 2 ? "x,y" :
+                   "x,y,z",
+        neumann_boundary_conditions_expression,
+        constants);
     }
 
   dof_handler.distribute_dofs(*fe);
@@ -144,10 +159,13 @@ Poisson<dim>::assemble_system()
         system_rhs(local_dof_indices[i]) += cell_rhs(i);
     }
   std::map<types::global_dof_index, double> boundary_values;
-  VectorTools::interpolate_boundary_values(dof_handler,
-                                           0,
-                                           boundary_condition,
-                                           boundary_values);
+  for (const auto &id : dirichlet_ids)
+    {
+      VectorTools::interpolate_boundary_values(dof_handler,
+                                               id,
+                                               dirichlet_boundary_condition,
+                                               boundary_values);
+    }
   MatrixTools::apply_boundary_values(boundary_values,
                                      system_matrix,
                                      solution,
@@ -192,7 +210,9 @@ Poisson<dim>::run()
       setup_system();
       assemble_system();
       solve();
-      error_table.error_from_exact(dof_handler, solution, boundary_condition);
+      error_table.error_from_exact(dof_handler,
+                                   solution,
+                                   dirichlet_boundary_condition);
       output_results(cycle);
       if (cycle < n_refinement_cycles - 1)
         refine_grid();

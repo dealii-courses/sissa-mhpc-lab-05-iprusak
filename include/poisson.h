@@ -91,15 +91,20 @@ protected:
   Vector<double>             system_rhs;
 
   FunctionParser<dim> forcing_term;
-  FunctionParser<dim> boundary_condition;
+  FunctionParser<dim> dirichlet_boundary_condition;
+  FunctionParser<dim> neumann_boundary_condition;
 
   unsigned int fe_degree           = 1;
   unsigned int n_refinements       = 4;
   unsigned int n_refinement_cycles = 1;
   std::string  output_filename     = "poisson";
 
-  std::string                   forcing_term_expression        = "1";
-  std::string                   boundary_conditions_expression = "0";
+  std::set<types::boundary_id> dirichlet_ids = {0};
+  std::set<types::boundary_id> neumann_ids;
+
+  std::string                   forcing_term_expression                  = "1";
+  std::string                   dirichlet_boundary_conditions_expression = "0";
+  std::string                   neumann_boundary_conditions_expression   = "0";
   std::map<std::string, double> constants;
 
   std::string grid_generator_function  = "hyper_cube";
